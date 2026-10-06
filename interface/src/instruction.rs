@@ -60,20 +60,27 @@ pub enum AssociatedTokenAccountInstruction {
     RecoverNested,
 }
 
+/// Subset of `AssociatedTokenAccountInstruction` that creates an account,
+/// encoded as its discriminator
+#[derive(Clone, Copy)]
+#[repr(u8)]
+enum CreateMode {
+    Create = 0,
+    CreateIdempotent = 1,
+}
+
 fn build_associated_token_account_instruction(
     funding_address: &Pubkey,
     wallet_address: &Pubkey,
     token_mint_address: &Pubkey,
     token_program_id: &Pubkey,
-    instruction: u8,
+    mode: CreateMode,
 ) -> Instruction {
     let associated_account_address = get_associated_token_address_with_program_id(
         wallet_address,
         token_mint_address,
         token_program_id,
     );
-    // safety check, assert if not a creation instruction, which is only 0 or 1
-    assert!(instruction <= 1);
     Instruction {
         program_id: id(),
         accounts: vec![
@@ -84,7 +91,7 @@ fn build_associated_token_account_instruction(
             AccountMeta::new_readonly(SYSTEM_PROGRAM_ID, false),
             AccountMeta::new_readonly(*token_program_id, false),
         ],
-        data: vec![instruction],
+        data: vec![mode as u8],
     }
 }
 
@@ -100,7 +107,7 @@ pub fn create_associated_token_account(
         wallet_address,
         token_mint_address,
         token_program_id,
-        0, // AssociatedTokenAccountInstruction::Create
+        CreateMode::Create,
     )
 }
 
@@ -116,7 +123,7 @@ pub fn create_associated_token_account_idempotent(
         wallet_address,
         token_mint_address,
         token_program_id,
-        1, // AssociatedTokenAccountInstruction::CreateIdempotent
+        CreateMode::CreateIdempotent,
     )
 }
 
@@ -165,5 +172,14 @@ mod tests {
     #[test]
     fn system_program_id() {
         assert_eq!(system_program::id(), SYSTEM_PROGRAM_ID);
+    }
+
+    #[test]
+    fn create_instruction_data() {
+        let key = Pubkey::new_from_array([1; 32]);
+        let create = create_associated_token_account(&key, &key, &key, &key);
+        let idempotent = create_associated_token_account_idempotent(&key, &key, &key, &key);
+        assert_eq!(create.data, vec![0]);
+        assert_eq!(idempotent.data, vec![1]);
     }
 }
