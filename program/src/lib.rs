@@ -8,24 +8,22 @@ pub mod instruction;
 pub mod processor;
 pub mod tools;
 
-// Export current SDK types for downstream users building with a different SDK
-// version
-pub use solana_program;
-use solana_program::{
-    instruction::{AccountMeta, Instruction},
-    pubkey::Pubkey,
-    sysvar,
-};
 #[deprecated(
     since = "4.1.0",
-    note = "Use `spl-associated-token-account-client` crate instead."
+    note = "Use `spl_associated_token_account_interface::address` instead and remove \
+            `spl_associated_token_account` as a dependency"
 )]
-pub use spl_associated_token_account_client::address::{
+#[allow(deprecated)]
+pub use spl_associated_token_account_interface::address::{
     get_associated_token_address, get_associated_token_address_with_program_id,
 };
 // Export current SDK types for downstream users building with a different SDK
 // version
-pub use spl_associated_token_account_client::program::{check_id, id, ID};
+pub use spl_associated_token_account_interface::program::{ID, check_id, id};
+use {
+    solana_instruction::{AccountMeta, Instruction},
+    solana_pubkey::Pubkey,
+};
 
 /// Create an associated token account for the given wallet address and token
 /// mint
@@ -42,6 +40,7 @@ pub use spl_associated_token_account_client::program::{check_id, id, ID};
     since = "1.0.5",
     note = "please use `instruction::create_associated_token_account` instead"
 )]
+#[allow(deprecated)]
 pub fn create_associated_token_account(
     funding_address: &Pubkey,
     wallet_address: &Pubkey,
@@ -57,9 +56,9 @@ pub fn create_associated_token_account(
             AccountMeta::new(associated_account_address, false),
             AccountMeta::new_readonly(*wallet_address, false),
             AccountMeta::new_readonly(*token_mint_address, false),
-            AccountMeta::new_readonly(solana_program::system_program::id(), false),
-            AccountMeta::new_readonly(spl_token::id(), false),
-            AccountMeta::new_readonly(sysvar::rent::id(), false),
+            AccountMeta::new_readonly(solana_system_interface::program::id(), false),
+            AccountMeta::new_readonly(spl_token_interface::id(), false),
+            AccountMeta::new_readonly(solana_sdk_ids::sysvar::rent::id(), false),
         ],
         data: vec![],
     }

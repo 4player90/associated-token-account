@@ -1,0 +1,49 @@
+[package]
+name = "pinocchio-associated-token-account-program"
+version = "0.1.0"
+description = "A pinocchio-based Associated Token Account program"
+authors = ["Anza Maintainers <maintainers@anza.xyz>"]
+repository = "https://github.com/solana-program/associated-token-account"
+license = "Apache-2.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[package.metadata.solana]
+program-id = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+
+[lints]
+workspace = true
+
+[dependencies]
+pinocchio = { workspace = true, features = ["cpi"] }
+pinocchio-associated-token-account-interface = { workspace = true }
+pinocchio-log = { workspace = true, features = ["macro"] }
+pinocchio-system = { workspace = true }
+pinocchio-token = { workspace = true }
+pinocchio-token-2022 = { workspace = true }
+spl-token-2022-interface = { workspace = true }
+
+[dev-dependencies]
+mollusk-svm = { workspace = true, features = ["inner-instructions"] }
+mollusk-svm-bencher = { workspace = true }
+mollusk-svm-programs-token = { workspace = true }
+mollusk-svm-result = { workspace = true, features = ["inner-instructions"] }
+solana-account = { workspace = true }
+solana-address = { workspace = true }
+solana-instruction = { workspace = true }
+solana-logger = { workspace = true }
+solana-program-error = { workspace = true }
+solana-program-option = { workspace = true }
+solana-program-pack = { workspace = true }
+solana-rent = { workspace = true }
+solana-system-interface = { workspace = true }
+spl-associated-token-account-interface = { workspace = true }
+spl-associated-token-account-mollusk-harness = { workspace = true }
+spl-token-interface = { workspace = true }
+test-case = { workspace = true }
+
+[[bench]]
+name = "compute_units"
+harness = false

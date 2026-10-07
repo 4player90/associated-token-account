@@ -1,25 +1,21 @@
 //! Program state processor
 
 use {
-    crate::{
-        error::AssociatedTokenAccountError,
-        instruction::AssociatedTokenAccountInstruction,
-        tools::account::{create_pda_account, get_account_len},
-    },
+    crate::tools::account::{create_pda_account, get_account_len},
     borsh::BorshDeserialize,
-    solana_program::{
-        account_info::{next_account_info, AccountInfo},
-        entrypoint::ProgramResult,
-        msg,
-        program::{invoke, invoke_signed},
-        program_error::ProgramError,
-        pubkey::Pubkey,
-        rent::Rent,
-        system_program,
-        sysvar::Sysvar,
+    solana_account_info::{AccountInfo, next_account_info},
+    solana_cpi::{invoke, invoke_signed},
+    solana_get_sysvar::GetSysvar,
+    solana_msg::msg,
+    solana_program_error::{ProgramError, ProgramResult},
+    solana_pubkey::Pubkey,
+    solana_rent::Rent,
+    solana_system_interface::program as system_program,
+    spl_associated_token_account_interface::{
+        address::get_associated_token_address_and_bump_seed_internal,
+        error::AssociatedTokenAccountError, instruction::AssociatedTokenAccountInstruction,
     },
-    spl_associated_token_account_client::address::get_associated_token_address_and_bump_seed_internal,
-    spl_token_2022::{
+    spl_token_2022_interface::{
         extension::{ExtensionType, StateWithExtensions},
         state::{Account, Mint},
     },
@@ -136,7 +132,7 @@ fn process_create_associated_token_account(
 
     msg!("Initialize the associated token account");
     invoke(
-        &spl_token_2022::instruction::initialize_immutable_owner(
+        &spl_token_2022_interface::instruction::initialize_immutable_owner(
             spl_token_program_id,
             associated_token_account_info.key,
         )?,
@@ -146,7 +142,7 @@ fn process_create_associated_token_account(
         ],
     )?;
     invoke(
-        &spl_token_2022::instruction::initialize_account3(
+        &spl_token_2022_interface::instruction::initialize_account3(
             spl_token_program_id,
             associated_token_account_info.key,
             spl_token_mint_info.key,
@@ -227,7 +223,10 @@ pub fn process_recover_nested(program_id: &Pubkey, accounts: &[AccountInfo]) -> 
     let (amount, decimals) = {
         // Check owner associated token account data
         if owner_associated_token_account_info.owner != spl_token_program_id {
-            msg!("Owner associated token account not owned by provided token program, recreate the owner associated token account first");
+            msg!(
+                "Owner associated token account not owned by provided token program, recreate the \
+                 owner associated token account first"
+            );
             return Err(ProgramError::IllegalOwner);
         }
         let owner_account_data = owner_associated_token_account_info.data.borrow();
@@ -269,7 +268,7 @@ pub fn process_recover_nested(program_id: &Pubkey, accounts: &[AccountInfo]) -> 
         &[bump_seed],
     ];
     invoke_signed(
-        &spl_token_2022::instruction::transfer_checked(
+        &spl_token_2022_interface::instruction::transfer_checked(
             spl_token_program_id,
             nested_associated_token_account_info.key,
             nested_token_mint_info.key,
@@ -291,7 +290,7 @@ pub fn process_recover_nested(program_id: &Pubkey, accounts: &[AccountInfo]) -> 
 
     // Close the nested account so it's never used again
     invoke_signed(
-        &spl_token_2022::instruction::close_account(
+        &spl_token_2022_interface::instruction::close_account(
             spl_token_program_id,
             nested_associated_token_account_info.key,
             wallet_account_info.key,

@@ -1,0 +1,32 @@
+[package]
+name = "spl-associated-token-account-mollusk-harness"
+version = "1.0.0"
+description = "SPL Associated Token Account Mollusk Testing Harness"
+authors = ["Anza Maintainers <maintainers@anza.xyz>"]
+repository = "https://github.com/solana-program/associated-token-account"
+license = "Apache-2.0"
+edition = "2021"
+
+[lib]
+crate-type = ["lib"]
+
+[dependencies]
+mollusk-svm = { workspace = true }
+mollusk-svm-programs-token = { workspace = true }
+pinocchio-associated-token-account-interface = { workspace = true }
+solana-account = { workspace = true }
+solana-instruction = { workspace = true }
+solana-program-error = { workspace = true }
+solana-program-option = { workspace = true }
+solana-program-pack = { workspace = true }
+solana-pubkey = { workspace = true }
+solana-rent = { workspace = true }
+solana-sdk-ids = { workspace = true }
+solana-system-interface = { workspace = true, features = ["bincode"] }
+spl-associated-token-account-interface = { workspace = true }
+spl-token-interface = { workspace = true }
+spl-token-2022-interface = { workspace = true }
+wincode = { workspace = true, features = ["alloc"] }
+
+[lints]
+workspace = true

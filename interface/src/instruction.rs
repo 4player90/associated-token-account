@@ -7,20 +7,80 @@ use {
 
 const SYSTEM_PROGRAM_ID: Pubkey = Pubkey::from_str_const("11111111111111111111111111111111");
 
+#[cfg(feature = "borsh")]
+use borsh::{BorshDeserialize, BorshSchema, BorshSerialize};
+
+/// Instructions supported by the `AssociatedTokenAccount` program
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "borsh",
+    derive(BorshDeserialize, BorshSerialize, BorshSchema)
+)]
+pub enum AssociatedTokenAccountInstruction {
+    /// Creates an associated token account for the given wallet address and
+    /// token mint Returns an error if the account exists.
+    ///
+    ///   0. `[writeable,signer]` Funding account (must be a system account)
+    ///   1. `[writeable]` Associated token account address to be created
+    ///   2. `[]` Wallet address for the new associated token account
+    ///   3. `[]` The token mint for the new associated token account
+    ///   4. `[]` System program
+    ///   5. `[]` SPL Token program
+    Create,
+    /// Creates an associated token account for the given wallet address and
+    /// token mint, if it doesn't already exist.  Returns an error if the
+    /// account exists, but with a different owner.
+    ///
+    ///   0. `[writeable,signer]` Funding account (must be a system account)
+    ///   1. `[writeable]` Associated token account address to be created
+    ///   2. `[]` Wallet address for the new associated token account
+    ///   3. `[]` The token mint for the new associated token account
+    ///   4. `[]` System program
+    ///   5. `[]` SPL Token program
+    CreateIdempotent,
+    /// Transfers from and closes a nested associated token account: an
+    /// associated token account owned by an associated token account.
+    ///
+    /// The tokens are moved from the nested associated token account to the
+    /// wallet's associated token account, and the nested account lamports are
+    /// moved to the wallet.
+    ///
+    /// Note: Nested token accounts are an anti-pattern, and almost always
+    /// created unintentionally, so this instruction should only be used to
+    /// recover from errors.
+    ///
+    ///   0. `[writeable]` Nested associated token account, must be owned by `3`
+    ///   1. `[]` Token mint for the nested associated token account
+    ///   2. `[writeable]` Wallet's associated token account
+    ///   3. `[]` Owner associated token account address, must be owned by `5`
+    ///   4. `[]` Token mint for the owner associated token account
+    ///   5. `[writeable, signer]` Wallet address for the owner associated token
+    ///      account
+    ///   6. `[]` SPL Token program
+    RecoverNested,
+}
+
+/// Subset of `AssociatedTokenAccountInstruction` that creates an account,
+/// encoded as its discriminator
+#[derive(Clone, Copy)]
+#[repr(u8)]
+enum CreateMode {
+    Create = 0,
+    CreateIdempotent = 1,
+}
+
 fn build_associated_token_account_instruction(
     funding_address: &Pubkey,
     wallet_address: &Pubkey,
     token_mint_address: &Pubkey,
     token_program_id: &Pubkey,
-    instruction: u8,
+    mode: CreateMode,
 ) -> Instruction {
     let associated_account_address = get_associated_token_address_with_program_id(
         wallet_address,
         token_mint_address,
         token_program_id,
     );
-    // safety check, assert if not a creation instruction, which is only 0 or 1
-    assert!(instruction <= 1);
     Instruction {
         program_id: id(),
         accounts: vec![
@@ -31,7 +91,7 @@ fn build_associated_token_account_instruction(
             AccountMeta::new_readonly(SYSTEM_PROGRAM_ID, false),
             AccountMeta::new_readonly(*token_program_id, false),
         ],
-        data: vec![instruction],
+        data: vec![mode as u8],
     }
 }
 
@@ -47,7 +107,7 @@ pub fn create_associated_token_account(
         wallet_address,
         token_mint_address,
         token_program_id,
-        0, // AssociatedTokenAccountInstruction::Create
+        CreateMode::Create,
     )
 }
 
@@ -63,7 +123,7 @@ pub fn create_associated_token_account_idempotent(
         wallet_address,
         token_mint_address,
         token_program_id,
-        1, // AssociatedTokenAccountInstruction::CreateIdempotent
+        CreateMode::CreateIdempotent,
     )
 }
 
@@ -107,10 +167,19 @@ pub fn recover_nested(
 
 #[cfg(test)]
 mod tests {
-    use {super::*, solana_program::system_program};
+    use {super::*, solana_sdk_ids::system_program};
 
     #[test]
     fn system_program_id() {
         assert_eq!(system_program::id(), SYSTEM_PROGRAM_ID);
+    }
+
+    #[test]
+    fn create_instruction_data() {
+        let key = Pubkey::new_from_array([1; 32]);
+        let create = create_associated_token_account(&key, &key, &key, &key);
+        let idempotent = create_associated_token_account_idempotent(&key, &key, &key, &key);
+        assert_eq!(create.data, vec![0]);
+        assert_eq!(idempotent.data, vec![1]);
     }
 }
